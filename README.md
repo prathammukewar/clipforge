@@ -42,6 +42,31 @@ to pick the moments and write the titles instead, which is a lot better:
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
+## Auto-upload and scheduling
+
+The `upload` command pushes a finished folder of shorts to YouTube
+through the official API and schedules them an hour apart:
+
+```bash
+./upload "output/Some Video Title"
+./upload "output/Some Video Title" --interval 90 --start "2026-09-20 09:00"
+```
+
+Titles come from the filenames and descriptions from `UPLOAD-INFO.txt`.
+The default API quota covers about 6 uploads a day.
+
+One-time setup: create a project at console.cloud.google.com, enable the
+YouTube Data API v3, create an OAuth client of type Desktop app, and save
+the downloaded file as `client_secret.json` in this folder. The first
+upload opens a browser window to sign in to your YouTube account.
+
+The catch you should know about: YouTube locks API uploads to private
+until your API project passes their compliance audit (a one-time form at
+support.google.com/youtube/contact/submit_app_audit). Until you are
+approved, scheduled videos upload fine but stay private instead of going
+public, so either file the audit early or flip each video to public in
+YouTube Studio, which still beats uploading by hand.
+
 ## Setup (already done on this machine)
 
 Needs ffmpeg (`brew install ffmpeg`) and the Python packages in

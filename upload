@@ -1,0 +1,4 @@
+#!/bin/zsh
+DIR="$(cd "$(dirname "$0")" && pwd)"
+export PATH="/opt/homebrew/bin:$PATH"
+exec "$DIR/.venv/bin/python" "$DIR/upload.py" "$@"
