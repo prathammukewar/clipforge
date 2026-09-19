@@ -148,6 +148,10 @@ def main():
             vid = upload_one(youtube, path,
                              descriptions.get(path.name, path.stem), publish_at)
             print(f"    done: https://youtube.com/shorts/{vid}")
+            # move it aside so a rerun can never upload the same file twice
+            done_dir = folder / "uploaded"
+            done_dir.mkdir(exist_ok=True)
+            path.rename(done_dir / path.name)
         except Exception as e:
             print(f"    FAILED: {e}")
             if "quota" in str(e).lower():
