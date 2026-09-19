@@ -21,9 +21,12 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+# Every file ClipForge writes stays inside these folders, no matter
+# where you run it from.
 PROJECT_DIR = Path(__file__).resolve().parent
-DOWNLOADS = PROJECT_DIR / "downloads"
-OUTPUT = PROJECT_DIR / "output"
+DOWNLOADS = PROJECT_DIR / "downloads"   # source videos and caption files
+OUTPUT = PROJECT_DIR / "output"         # finished shorts, one folder per video
+TMP = PROJECT_DIR / ".tmp"              # scratch space, cleaned after each clip
 
 FFMPEG = shutil.which("ffmpeg") or "/opt/homebrew/bin/ffmpeg"
 FFPROBE = shutil.which("ffprobe") or "/opt/homebrew/bin/ffprobe"
@@ -369,7 +372,8 @@ def probe_size(video):
 
 def cut_short(video, seg, chunks, out_path, src_w, src_h):
     """One ffmpeg pass: trim, crop to 9:16, scale, overlay caption PNGs."""
-    tmp = Path(tempfile.mkdtemp(prefix="clipforge_"))
+    TMP.mkdir(exist_ok=True)
+    tmp = Path(tempfile.mkdtemp(prefix="clip_", dir=TMP))
     try:
         inputs = [FFMPEG, "-hide_banner", "-loglevel", "error", "-y",
                   "-ss", f"{seg.start:.3f}", "-t", f"{seg.end - seg.start:.3f}",

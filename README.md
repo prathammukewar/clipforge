@@ -25,6 +25,13 @@ Finder, or run it directly:
 Results land in `output/<video title>/` along with `UPLOAD-INFO.txt`, which
 lists where each clip came from and a suggested description for each one.
 
+## Where things go
+
+Everything stays inside the ClipForge folder no matter where you run it
+from. `downloads/` holds the source videos and captions, `output/` holds
+the finished shorts, and `.tmp/` is scratch space that gets cleaned up
+after each clip. Delete `downloads/` any time to free disk space.
+
 ## Better clip picking with Claude
 
 Out of the box ClipForge picks moments with a built-in scoring pass. If you
