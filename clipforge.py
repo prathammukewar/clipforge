@@ -134,7 +134,8 @@ def parse_json3(path):
             continue
         dur = ev.get("dDurationMs", 0)
         for seg in ev.get("segs", []) or []:
-            text = (seg.get("utf8") or "").strip()
+            # some caption tracks pad with zero-width spaces; drop them
+            text = (seg.get("utf8") or "").replace("​", " ").strip()
             if not text:
                 continue
             start = (base + seg.get("tOffsetMs", 0)) / 1000.0
@@ -144,6 +145,14 @@ def parse_json3(path):
         if words and dur:
             words[-1].end = (base + dur) / 1000.0
     words.sort(key=lambda w: w.start)
+    # styled caption tracks repeat every word in overlapping events
+    # ("Months Months ago, ago,"); keep one copy of near-simultaneous twins
+    deduped = []
+    for w in words:
+        if deduped and w.text == deduped[-1].text and w.start - deduped[-1].start < 0.3:
+            continue
+        deduped.append(w)
+    words = deduped
     for i, w in enumerate(words):
         # json3 only carries start offsets: hold each word until the next
         # one begins, capped so captions don't freeze through long pauses
@@ -518,7 +527,7 @@ def main():
     args = parser.parse_args()
 
     url = args.url
-    count = max(1, min(args.count, 12))
+    count = max(1, min(args.count, 40))
     if not url and (args.transcript_only or args.segments):
         die("give the YouTube link on the command line with these options")
     if not url:
@@ -528,7 +537,7 @@ def main():
             die("no link given")
         raw = input("How many shorts? [4]: ").strip()
         if raw.isdigit():
-            count = max(1, min(int(raw), 12))
+            count = max(1, min(int(raw), 40))
     if not re.match(r"https?://", url):
         url = "https://" + url
 
