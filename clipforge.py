@@ -322,6 +322,13 @@ def caption_chunks(words, seg):
         text = re.sub(r"[\[\]]", "", text)
         if text.strip():
             out.append((start, max(end, start + 0.25), text))
+    # never let a burst linger into the next one: two captions on screen
+    # at once render on top of each other
+    for i in range(len(out) - 1):
+        start, end, text = out[i]
+        nxt_start = out[i + 1][0]
+        if end > nxt_start - 0.001:
+            out[i] = (start, max(nxt_start - 0.001, start + 0.1), text)
     return out
 
 
