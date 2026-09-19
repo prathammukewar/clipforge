@@ -101,8 +101,22 @@ def fetch_video(url):
         "no_warnings": True,
         "noprogress": False,
     }
-    with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(url, download=True)
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+    except yt_dlp.utils.DownloadError as e:
+        msg = str(e)
+        if "403" in msg or "Forbidden" in msg:
+            die("YouTube refused the download (403). It does this when it "
+                "wants a signed-in session or has rate limited you after "
+                "several downloads. Waiting a while usually clears it; a "
+                "yt-dlp update helps when the block is permanent.")
+        if "Private video" in msg or "members-only" in msg:
+            die("that video is private or members only, so it cannot be "
+                "downloaded")
+        if "Video unavailable" in msg:
+            die("YouTube says that video is unavailable; check the link")
+        die(f"download failed: {msg.splitlines()[0]}")
 
     vid = info["id"]
     video_path = DOWNLOADS / f"{vid}.mp4"
