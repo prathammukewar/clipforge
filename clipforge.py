@@ -260,8 +260,11 @@ Reply with ONLY a JSON array, no other text:
     match = re.search(r"\[.*\]", text, re.DOTALL)
     if not match:
         raise RuntimeError("no JSON found in model reply")
-    raw = json.loads(match.group(0))
+    return validate_segments(json.loads(match.group(0)), words, count)
 
+
+def validate_segments(raw, words, count=None):
+    """Clamp raw {start,end,title,description} dicts into usable Segments."""
     total = words[-1].end
     segs = []
     for item in raw:
@@ -274,7 +277,7 @@ Reply with ONLY a JSON array, no other text:
         segs.append(Segment(start, end, str(item["title"]).strip(),
                             str(item.get("description", "")).strip()))
     segs.sort(key=lambda s: s.start)
-    return segs[:count]
+    return segs[:count] if count else segs
 
 
 def snap_to_words(seg, words):
@@ -418,7 +421,7 @@ def safe_filename(title):
     return title[:TITLE_MAX].strip(" .-") or "Untitled clip"
 
 
-def make_shorts(url, count):
+def make_shorts(url, count, segments_file=None, transcript_only=False):
     log("Downloading video and captions...")
     info, video_path, subs_path = fetch_video(url)
     title = info.get("title", "video")
@@ -433,9 +436,22 @@ def make_shorts(url, count):
         die("captions are too sparse to build shorts from")
     log(f"  transcript: {len(words)} words")
 
+    if transcript_only:
+        sents = sentences_from_words(words)
+        lines = [f"[{s[0].start:.1f}-{s[-1].end:.1f}] "
+                 + " ".join(w.text for w in s) for s in sents]
+        path = DOWNLOADS / f"{info['id']}.transcript.txt"
+        path.write_text(f"# {title}\n" + "\n".join(lines))
+        log(f"Transcript written to {path}")
+        return
+
     log("Picking the best moments...")
     segments = []
-    if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"):
+    if segments_file:
+        raw = json.loads(Path(segments_file).read_text())
+        segments = validate_segments(raw, words)
+        log(f"  using {len(segments)} preset segments")
+    elif os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"):
         try:
             segments = pick_segments_claude(words, title, count)
             log(f"  Claude picked {len(segments)} moments")
@@ -487,10 +503,17 @@ def main():
     parser.add_argument("url", nargs="?", help="YouTube video link")
     parser.add_argument("count", nargs="?", type=int, default=4,
                         help="how many shorts to make (default 4)")
+    parser.add_argument("--transcript-only", action="store_true",
+                        help="download and write the transcript, then stop")
+    parser.add_argument("--segments", metavar="FILE",
+                        help="JSON file of {start,end,title,description} "
+                             "segments to use instead of automatic picking")
     args = parser.parse_args()
 
     url = args.url
     count = max(1, min(args.count, 12))
+    if not url and (args.transcript_only or args.segments):
+        die("give the YouTube link on the command line with these options")
     if not url:
         print("ClipForge: paste a YouTube link, get Shorts back.\n")
         url = input("YouTube link: ").strip()
@@ -502,7 +525,8 @@ def main():
     if not re.match(r"https?://", url):
         url = "https://" + url
 
-    make_shorts(url, count)
+    make_shorts(url, count, segments_file=args.segments,
+                transcript_only=args.transcript_only)
 
 
 if __name__ == "__main__":
