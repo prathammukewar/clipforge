@@ -67,6 +67,25 @@ approved, scheduled videos upload fine but stay private instead of going
 public, so either file the audit early or flip each video to public in
 YouTube Studio, which still beats uploading by hand.
 
+## Scheduling videos already on your channel
+
+If the videos are uploaded and you just want them spaced out:
+
+```bash
+./schedule 24
+./schedule 24 --interval 90 --start "2026-09-20 09:00"
+```
+
+It lists your most recent uploads, shows the plan with each publish
+time, and waits for you to confirm before changing anything. The oldest
+of the batch goes out first unless you pass `--newest-first`. Videos
+that are already public are skipped, since there is nothing to schedule.
+
+Scheduling only works on private videos, which is a YouTube rule rather
+than a choice here: a scheduled video sits private until its slot, then
+goes public on its own. Each change costs 50 quota units, so 24 videos
+uses 1200 of the 10,000 you get per day.
+
 ## Setup (already done on this machine)
 
 Needs ffmpeg (`brew install ffmpeg`) and the Python packages in
